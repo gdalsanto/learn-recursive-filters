@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+    packages = ["src"]
+
+[project]
+name = "learn-recursive-filters"
+version = "0.0.1"
+authors = [
+  { name="Gloria Dal Santo", email="gloria.dalsanto@aalto.fi" },
+]
+maintainers = [
+  { name="Gloria Dal Santo", email="gloria.dalsanto@aalto.fi" },
+]
+description = "Code to investigate how to learn recursive attenuation filters under noisy conditions"
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["audio", "artificial reverberatioN", "reverb", "signal processing", "differentiable programming", "machine learning", "optimization"]
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+    "torch>=0.2.9",
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "pydantic",
+    "nnAudio",
+    "pyfar",
+    "pyyaml",
+    "sympy", 
+    "onnx", 
+    "onnxruntime",
+    "flamo",
+    "flareverb",
+    "PySoundFile",
+    "loguru"
+]
+
+[project.urls]
+Homepage = "https://github.com/gdalsanto/learn-recursive-filters"
+Issues = "https://github.com/gdalsanto/learn-recursive-filters/issues"

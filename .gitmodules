@@ -1,0 +1,3 @@
+[submodule "DecayFitNet"]
+	path = DecayFitNet
+	url = git@github.com:gdalsanto/DecayFitNet.git

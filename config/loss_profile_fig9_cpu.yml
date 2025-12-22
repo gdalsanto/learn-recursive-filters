@@ -1,0 +1,38 @@
+fdn_config:
+  rt60: [0.5] 
+  nfft: 192000
+  attenuation_type: 'one_pole'
+  delays: [997, 1153, 1327, 1559, 1801, 2099]
+  alias_decay_db: 0
+target_fdn_config:
+  rt60: [0.5] 
+  nfft: 192000
+  attenuation_type: 'one_pole'
+  N: 32
+  alias_decay_db: 0
+param_config:
+    - key: 'feedback_loop.feedforward.attenuation'  # rt at DC, target 2 
+      lower_bound: 0.25
+      upper_bound: 3.75
+      target_value: 2
+      scale: 'linear'
+      n_steps: 3
+      indx: 0
+    - key: 'feedback_loop.feedforward.attenuation'  # cutoff frequency (rads/s), target 10k Hz
+      lower_bound: 0.2094 # 1.6 kHz
+      upper_bound: 2.0944 # 16 kHz
+      target_value: 1.3090
+      scale: 'log'
+      n_steps: 3
+      indx: 1
+loss_config:
+  n_runs: 1
+  output_dir: "output/no_perturb_noearly_snr10_noiseinj_rt" 
+indx_profile: 0
+device: 'cpu'
+add_noise_to_target: True
+snr_db: 10
+losses:
+  - ['EDC', {'func_name': 'edc_loss', 'args': {'name': 'EDC_lin', 'is_broadband': False, 'scale': 'linear','n_fractions': 3, 'energy_norm': False, 'clip': False, 't_mix': 0.08746, 'add_noise': True, 'noise_file': './output/no_perturb_noearly_snr10_noiseinj_rt/noise_term.mat'}}]
+  - ['EDC', {'func_name': 'edc_loss', 'args': {'name': 'EDC_log', 'is_broadband': False, 'scale': 'log','n_fractions': 3, 'energy_norm': False, 'clip': False, 't_mix': 0.08746, 'add_noise': True, 'noise_file': './output/no_perturb_noearly_snr10_noiseinj_rt/noise_term.mat'}}]
+  - ['MSS', {'func_name': 'mss_loss', 'args': {'name': 'MSS', 'energy_norm': False,  'alpha_lin': 1, 'alpha_log': 1, 't_mix': 0.08746, 'add_noise': True, 'noise_file': './output/no_perturb_noearly_snr10_noiseinj_rt/noise_term.mat'}}]
