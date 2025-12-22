@@ -8,6 +8,7 @@ import torch
 from flamo.processor import dsp, system
 from flamo.auxiliary.reverb import inverse_map_gamma, parallelFirstOrderShelving
 
+
 def rt2slope(rt60: torch.Tensor, fs: int):
     r"""
     Convert time in seconds of 60 dB decay to energy decay slope.
@@ -21,6 +22,7 @@ def rt2absorption(rt60: torch.Tensor, fs: int, delays_len: torch.Tensor):
     """
     slope = rt2slope(rt60, fs)
     return torch.einsum("i,j->ij", slope, delays_len)
+
 
 class CustomShell(system.Shell):
     def __init__(self, core, input_layer, output_layer):
@@ -47,13 +49,19 @@ class CustomShell(system.Shell):
         x = self._Shell__output_layer(x)
         return x
 
+
 class FDN:
     r"""
     Class for creating a Feedback Delay Network (FDN).
     The FDN is initialized with homogeneous attenuation.
     """
 
-    def __init__(self, config_dict: dict, requires_grad: bool = True, filter_requires_grad: bool = True):
+    def __init__(
+        self,
+        config_dict: dict,
+        requires_grad: bool = True,
+        filter_requires_grad: bool = True,
+    ):
 
         # get config parameters
         self.config_dict = config_dict
@@ -97,16 +105,18 @@ class FDN:
             device=self.config_dict.device,
             alias_decay_db=self.config_dict.alias_decay_db,
             dtype=torch.float64,
-            requires_grad=self.requires_grad
+            requires_grad=self.requires_grad,
         )
-        input_gain.assign_value(torch.tensor(input_vector, device=self.config_dict.device).unsqueeze(1))
+        input_gain.assign_value(
+            torch.tensor(input_vector, device=self.config_dict.device).unsqueeze(1)
+        )
         output_gain = dsp.Gain(
             size=(1, self.N),
             nfft=self.config_dict.nfft,
             device=self.config_dict.device,
             alias_decay_db=self.config_dict.alias_decay_db,
             dtype=torch.float64,
-            requires_grad=self.requires_grad
+            requires_grad=self.requires_grad,
         )
         output_gain.assign_value(
             torch.ones((1, self.N), device=self.config_dict.device)
@@ -121,7 +131,7 @@ class FDN:
             device=self.config_dict.device,
             alias_decay_db=self.config_dict.alias_decay_db,
             requires_grad=False,
-            dtype=torch.float64
+            dtype=torch.float64,
         )
         # assign the required delay line lengths
         delays.assign_value(delays.sample2s(delay_lines))
@@ -134,7 +144,7 @@ class FDN:
             device=self.config_dict.device,
             alias_decay_db=self.config_dict.alias_decay_db,
             dtype=torch.float64,
-            requires_grad=self.requires_grad
+            requires_grad=self.requires_grad,
         )
 
         # attenuation
@@ -164,8 +174,8 @@ class FDN:
             nfft=self.config_dict.nfft,
             device=self.config_dict.device,
             alias_decay_db=self.config_dict.alias_decay_db,
-            dtype=torch.float64, 
-            requires_grad=self.filter_requires_grad
+            dtype=torch.float64,
+            requires_grad=self.filter_requires_grad,
         )
         attenuation.map = map_gamma(delay_lines)
         if self.config_dict.rt60:
@@ -197,14 +207,18 @@ class FDN:
             rt_nyquist=self.config_dict.rt60,
             alias_decay_db=self.config_dict.alias_decay_db,
             dtype=torch.float64,
-            requires_grad=self.filter_requires_grad
+            requires_grad=self.filter_requires_grad,
         )
+
         # overwrite the init_param method to set the initial parameters
         def init_param(self_inner):
             with torch.no_grad():
                 # RT at dc
                 self_inner.param[0] = 2
-                self_inner.param[1] = 2 * torch.pi * 10000 / self_inner.fs  # shelf freq at 10kHz
+                self_inner.param[1] = (
+                    2 * torch.pi * 10000 / self_inner.fs
+                )  # shelf freq at 10kHz
+
         attenuation.init_param = init_param.__get__(attenuation)
         attenuation.init_param()
         return attenuation
@@ -222,7 +236,7 @@ class FDN:
         return CustomShell(
             core=self.fdn, input_layer=input_layer, output_layer=output_layer
         )
-        
+
     def get_delay_lines(self):
         """Co-prime delay line lenghts for a given range"""
         ms_to_samps = lambda ms, fs: np.round(ms * fs / 1000).astype(int)
@@ -273,14 +287,16 @@ class FDN:
                 elif key == "C":
                     core.output_gain.assign_value(tensor_value)
                 elif key == "m":
-                    assert torch.equal(core.feedback_loop.feedforward.delays.param.squeeze(), tensor_value.squeeze()), "wrong delay line lengths"
+                    assert torch.equal(
+                        core.feedback_loop.feedforward.delays.param.squeeze(),
+                        tensor_value.squeeze(),
+                    ), "wrong delay line lengths"
 
             self.model.set_core(core)
 
     def read_parameters(self, filename):
         # read the parameters from a mat file
-       return scipy.io.loadmat(filename)
-
+        return scipy.io.loadmat(filename)
 
     def normalize_energy(
         self,
@@ -294,7 +310,7 @@ class FDN:
 
         H = self.model.get_freq_response(identity=False)
         if is_time:
-            norm = (H.shape[1]-1)*2
+            norm = (H.shape[1] - 1) * 2
             target_energy = target_energy * norm
         energy_H = torch.mean(torch.pow(torch.abs(H), 2))
         target_energy = torch.tensor(target_energy, device=self.config_dict.device)
@@ -348,10 +364,13 @@ class FDN:
             elif key == "C":
                 core.output_gain.assign_value(tensor_value)
             elif key == "m":
-                assert torch.equal(core.feedback_loop.feedforward.delays.param.squeeze(), tensor_value.squeeze()), "wrong delay line lengths"
+                assert torch.equal(
+                    core.feedback_loop.feedforward.delays.param.squeeze(),
+                    tensor_value.squeeze(),
+                ), "wrong delay line lengths"
 
         self.model.set_core(core)
-        
+
         ir = self.model.get_time_response().cpu().numpy().squeeze()
 
         with torch.no_grad():
@@ -368,11 +387,15 @@ class FDN:
                 elif key == "C":
                     core.output_gain.assign_value(tensor_value)
                 elif key == "m":
-                    assert torch.equal(core.feedback_loop.feedforward.delays.param.squeeze(), tensor_value.squeeze()), "wrong delay line lengths"
+                    assert torch.equal(
+                        core.feedback_loop.feedforward.delays.param.squeeze(),
+                        tensor_value.squeeze(),
+                    ), "wrong delay line lengths"
 
             self.model.set_core(core)
 
         return ir
+
 
 class map_gamma(torch.nn.Module):
 

@@ -1,24 +1,25 @@
 import scipy
-import numpy as np 
+import numpy as np
 
 
-def unpack_functions(module, lst: list, device='cpu'):
+def unpack_functions(module, lst: list, device="cpu"):
     """
     Unpack a list of functions.
     """
     functions = []
     for i_fun in range(len(lst)):
         # Extract the function name and arguments
-        func_name = lst[i_fun][1]['func_name']
-        args = lst[i_fun][1]['args']
+        func_name = lst[i_fun][1]["func_name"]
+        args = lst[i_fun][1]["args"]
 
         # Assume the function is defined in the current scope (use eval or globals())
         func = getattr(module, func_name)  # Or use eval(func_name) if safe
 
         # Call the function with unpacked arguments
         functions.append(func(**args, device=device))
-    
+
     return functions
+
 
 def parse_config(config_dict: dict):
     device = config_dict.device
@@ -27,10 +28,10 @@ def parse_config(config_dict: dict):
     target_fdn_config = config_dict.target_fdn_config
     target_fdn_config.device = device
 
-    try :
+    try:
         loss_config = config_dict.loss_config
         param_config = config_dict.param_config
-        # create a dictionary 
+        # create a dictionary
         config = {
             "fdn": fdn_config,
             "target_fdn": target_fdn_config,
@@ -42,7 +43,7 @@ def parse_config(config_dict: dict):
         }
         return config
     except AttributeError:
-        # create a dictionary 
+        # create a dictionary
         config = {
             "fdn": fdn_config,
             "target_fdn": target_fdn_config,
@@ -55,8 +56,11 @@ def parse_config(config_dict: dict):
             "snr_db": config_dict.snr_db,
         }
         return config
-    
-def compute_echo(ir: np.ndarray, fs: int, N: int = 1024, preDelay: int = 0, mixingThresh: float = 0.9):
+
+
+def compute_echo(
+    ir: np.ndarray, fs: int, N: int = 1024, preDelay: int = 0, mixingThresh: float = 0.9
+):
     """
     Computes the mixing time and echo density of an impulse response (IR).
 
@@ -87,33 +91,35 @@ def compute_echo(ir: np.ndarray, fs: int, N: int = 1024, preDelay: int = 0, mixi
     halfWin = N // 2
 
     if len(ir) < N:
-        raise ValueError('IR shorter than analysis window length (1024 samples). Provide at least an IR of some 100 msec.')
+        raise ValueError(
+            "IR shorter than analysis window length (1024 samples). Provide at least an IR of some 100 msec."
+        )
 
     sparseInd = np.arange(0, len(ir), 500)
     for n in sparseInd:
         # window at the beginning (increasing window length)
         # n = 1 to 513
         if n <= halfWin + 1:
-            hTau = ir[0:n + halfWin]
-            wT = wTau[-halfWin - n:]
+            hTau = ir[0 : n + halfWin]
+            wT = wTau[-halfWin - n :]
 
         # window in the middle (constant window length)
         # n = 514 to end-511
         elif n > halfWin + 1 and n <= len(ir) - halfWin + 1:
-            hTau = ir[n - halfWin:n + halfWin]
+            hTau = ir[n - halfWin : n + halfWin]
             wT = wTau
 
         # window at the end (decreasing window length)
         # n = (end-511) to end
         elif n > len(ir) - halfWin + 1:
-            hTau = ir[n - halfWin:]
-            wT = wTau[:len(hTau)]
+            hTau = ir[n - halfWin :]
+            wT = wTau[: len(hTau)]
 
         else:
-            raise ValueError('Invalid n Condition')
+            raise ValueError("Invalid n Condition")
 
         # standard deviation
-        s[n] = np.sqrt(np.sum(wT * (hTau ** 2)))
+        s[n] = np.sqrt(np.sum(wT * (hTau**2)))
 
         # number of tips outside the standard deviation
         tipCt = np.abs(hTau) > s[n]
@@ -132,6 +138,6 @@ def compute_echo(ir: np.ndarray, fs: int, N: int = 1024, preDelay: int = 0, mixi
 
     if t_abel is None:
         t_abel = 0
-        print('Mixing time not found within given limits.')
+        print("Mixing time not found within given limits.")
 
     return t_abel, echo_dens

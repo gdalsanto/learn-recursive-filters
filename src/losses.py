@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 import torch
 import pyfar as pf
-import scipy 
+import scipy
 import torch.nn as nn
 import torch.nn.functional as F
 from torchaudio.functional import fftconvolve
@@ -48,6 +48,7 @@ class mss_loss(nn.Module):
         - Yamamoto, R., Song, E., & Kim, J. M. (2020, May). Parallel WaveGAN: A fast waveform generation model based on generative adversarial networks with multi-resolution spectrogram. In ICASSP 2020-2020 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP) (pp. 6199-6203). IEEE.
         - Engel, J., Hantrakul, L., Gu, C., & Roberts, A. (2020). DDSP: Differentiable digital signal processing. arXiv preprint arXiv:2001.04643.
     """
+
     def __init__(
         self,
         nfft: List[int] = [128, 256, 512, 1024, 2048, 4096],
@@ -61,7 +62,7 @@ class mss_loss(nn.Module):
         threshold: float = 5,
         alpha_lin: float = 1.0,
         alpha_log: float = 1.0,
-        noise_energy = None,
+        noise_energy=None,
         f_min: float = 31.5,
         f_max: float = 20000,
         add_noise: bool = False,
@@ -103,12 +104,18 @@ class mss_loss(nn.Module):
             self._lin_stft_fns.append(stft_fn)
 
     def forward(self, y_pred, y_true):
-        if self.add_noise: 
-            self.noise_term = torch.tensor(scipy.io.loadmat(self.noise_file)['noise_term']).to(self.device).to(torch.float64)
+        if self.add_noise:
+            self.noise_term = (
+                torch.tensor(scipy.io.loadmat(self.noise_file)["noise_term"])
+                .to(self.device)
+                .to(torch.float64)
+            )
         if self.snr is not None:
             energy_pred = torch.mean(y_pred**2).item()
-            energy_noise = energy_pred / (10**(self.snr/10))
-            self.noise_term = self.noise_term * torch.sqrt(torch.tensor(energy_noise) / torch.mean(self.noise_term**2))
+            energy_noise = energy_pred / (10 ** (self.snr / 10))
+            self.noise_term = self.noise_term * torch.sqrt(
+                torch.tensor(energy_noise) / torch.mean(self.noise_term**2)
+            )
         # assert that y_pred and y_true have the same shape = (n_batch, n_samples, n_channels)
         if len(y_pred.shape) == 1:
             y_pred = y_pred.unsqueeze(0).unsqueeze(-1)
@@ -118,7 +125,7 @@ class mss_loss(nn.Module):
         ), "y_pred and y_true must have the same shape (n_batch, n_samples, n_channels)"
         if self.add_noise:
             noise_term = self.noise_term.to(y_pred.device).to(y_pred.dtype)
-            y_pred = y_pred + noise_term 
+            y_pred = y_pred + noise_term
 
         n_channels = y_pred.shape[-1]
         batch_size = y_pred.shape[0]
@@ -151,8 +158,12 @@ class mss_loss(nn.Module):
             Y_pred_lin = torch.reshape(lin_stft_pred, (batch_size, h, w, n_channels))
             Y_true_lin = torch.reshape(lin_stft_true, (batch_size, h, w, n_channels))
 
-            Y_pred_log = torch.reshape(torch.log(lin_stft_pred), (batch_size, h, w, n_channels))
-            Y_true_log = torch.reshape(torch.log(lin_stft_true), (batch_size, h, w, n_channels))
+            Y_pred_log = torch.reshape(
+                torch.log(lin_stft_pred), (batch_size, h, w, n_channels)
+            )
+            Y_true_log = torch.reshape(
+                torch.log(lin_stft_true), (batch_size, h, w, n_channels)
+            )
 
             mask = torch.ones_like(Y_true_lin)
             if self.apply_mask:
@@ -194,13 +205,16 @@ class mss_loss(nn.Module):
             Y_pred_log[clip_indx] = torch.finfo(Y_pred_log.dtype).eps
             Y_true_log[clip_indx] = torch.finfo(Y_true_log.dtype).eps
             # update match loss
-            loss += self.alpha_lin * torch.norm((Y_true_lin - Y_pred_lin) * mask, p="fro") / torch.norm(
-                Y_true_lin, p="fro"
-            ) + self.alpha_log * torch.norm((Y_true_log - Y_pred_log) * mask, p=1) / torch.numel(
+            loss += self.alpha_lin * torch.norm(
+                (Y_true_lin - Y_pred_lin) * mask, p="fro"
+            ) / torch.norm(Y_true_lin, p="fro") + self.alpha_log * torch.norm(
+                (Y_true_log - Y_pred_log) * mask, p=1
+            ) / torch.numel(
                 Y_true_log
             )
         return loss
- 
+
+
 ## -------------------- ENERGY DECAY RELIEF LOSSES
 class edr_loss(nn.Module):
     r"""
@@ -219,12 +233,13 @@ class edr_loss(nn.Module):
     References:
         - Mezza, A. I., Giampiccolo, R., & Bernardini, A. (2024). Modeling the frequency-dependent sound energy decay of acoustic environments with differentiable feedback delay networks. In Proceedings of the 27th International Conference on Digital Audio Effects (DAFx24) (pp. 238-245).
     """
+
     def __init__(
         self,
         nfft: int = 1024,
         overlap: float = 0.5,
         sample_rate: int = 48000,
-        t_mix: int = 0, 
+        t_mix: int = 0,
         scale: str = "log",
         energy_norm: bool = False,
         device: str = "cpu",
@@ -251,6 +266,7 @@ class edr_loss(nn.Module):
         self.add_noise = add_noise
         self.noise_file = noise_file
         self.snr = snr
+
     def discard_last_n_percent(self, x, n_percent):
         # Discard last n%
         last_id = int(np.round((1 - n_percent / 100) * x.shape[1]))
@@ -294,12 +310,18 @@ class edr_loss(nn.Module):
         return mel_stft
 
     def forward(self, y_pred, y_true):
-        if self.add_noise: 
-            self.noise_term = torch.tensor(scipy.io.loadmat(self.noise_file)['noise_term']).to(self.device).to(torch.float64)
+        if self.add_noise:
+            self.noise_term = (
+                torch.tensor(scipy.io.loadmat(self.noise_file)["noise_term"])
+                .to(self.device)
+                .to(torch.float64)
+            )
         if self.snr is not None:
             energy_pred = torch.mean(y_pred**2).item()
-            energy_noise = energy_pred / (10**(self.snr/10))
-            self.noise_term = self.noise_term * torch.sqrt(torch.tensor(energy_noise) / torch.mean(self.noise_term**2))
+            energy_noise = energy_pred / (10 ** (self.snr / 10))
+            self.noise_term = self.noise_term * torch.sqrt(
+                torch.tensor(energy_noise) / torch.mean(self.noise_term**2)
+            )
         # assert that y_pred and y_true have the same shape = (n_batch, n_samples, n_channels)
         if len(y_pred.shape) == 1:
             y_pred = y_pred.unsqueeze(0).unsqueeze(-1)
@@ -312,13 +334,13 @@ class edr_loss(nn.Module):
         batch_size = y_pred.shape[0]
         if self.add_noise:
             noise_term = self.noise_term.to(y_pred.device).to(y_pred.dtype)
-            y_pred = y_pred + noise_term 
+            y_pred = y_pred + noise_term
 
         # reshape it to (num_audio, len_audio) as indicated by nnAudio
         y_pred = torch.reshape(y_pred, (-1, y_pred.shape[1]))
         y_true = torch.reshape(y_true, (-1, y_true.shape[1]))
 
-        # remove the first t_mix seconds 
+        # remove the first t_mix seconds
         n_remove = int(self.t_mix * self.sample_rate)
         y_pred = y_pred[:, n_remove:]
         y_true = y_true[:, n_remove:]
@@ -330,14 +352,14 @@ class edr_loss(nn.Module):
         Y_pred_edr = self.schroeder_backward_int(Y_pred)[0]
         Y_true_edr = self.schroeder_backward_int(Y_true)[0]
 
-        # in case you get bad targets 
+        # in case you get bad targets
         clip_indx = torch.nonzero(
             Y_true_edr == torch.tensor(-float("inf"), device=self.device),
             as_tuple=True,
         )
         Y_true_edr[clip_indx] = torch.finfo(Y_true_edr.dtype).eps
         Y_pred_edr[clip_indx] = torch.finfo(Y_pred_edr.dtype).eps
-        
+
         loss = torch.norm(Y_true_edr - Y_pred_edr, p=2) / torch.norm(Y_true_edr, p=2)
         return loss
 
@@ -363,17 +385,17 @@ class edr_loss(nn.Module):
         Y_pred_edr = 10 * torch.log10(self.schroeder_backward_int(Y_pred)[0])
         Y_true_edr = 10 * torch.log10(self.schroeder_backward_int(Y_true)[0])
 
-        # in case you get bad targets 
+        # in case you get bad targets
         clip_indx = torch.nonzero(
             Y_true_edr == torch.tensor(-float("inf"), device=self.device),
             as_tuple=True,
         )
         Y_true_edr[clip_indx] = torch.finfo(Y_true_edr.dtype).eps
         Y_pred_edr[clip_indx] = torch.finfo(Y_pred_edr.dtype).eps
-        
+
         loss = torch.norm(Y_true_edr - Y_pred_edr, p=1) / torch.norm(Y_true_edr, p=1)
         return loss, Y_pred_edr, Y_true_edr
-    
+
 
 ## -------------------- ENERGY DECAY CURVE LOSSES
 class edc_loss(nn.Module):
@@ -393,12 +415,13 @@ class edc_loss(nn.Module):
         - **name** (str): A name for the loss function. Default is "EDC".
         - **device** (str): The device to run the computations on (e.g., "cpu" or "cuda"). Default is "cpu".
     """
+
     def __init__(
         self,
         sample_rate: int = 48000,
         is_broadband: bool = False,
         n_fractions: int = 1,
-        t_mix: int = 0, 
+        t_mix: int = 0,
         energy_norm: bool = False,
         scale: str = "log",
         clip: bool = False,
@@ -426,7 +449,7 @@ class edc_loss(nn.Module):
         self.f_min = f_min
         self.f_max = f_max
         self.mse = nn.MSELoss(reduction="mean")
-        self._filter_cache = {} # cache for filterbank weights
+        self._filter_cache = {}  # cache for filterbank weights
         self.add_noise = add_noise
         self.noise_file = noise_file
         self.snr = snr
@@ -448,20 +471,27 @@ class edc_loss(nn.Module):
                 frequency_range=(self.f_min, self.f_max),
             ).time.T
 
-            self._filter_cache[key] = filt_np.squeeze() 
-
+            self._filter_cache[key] = filt_np.squeeze()
 
         # get weight and move to same device/dtype as x (avoid device transfers per band)
-        weight = torch.from_numpy(self._filter_cache[key]).to(device=x.device, dtype=x.dtype)  # (n_bands,1,filter_len)
+        weight = torch.from_numpy(self._filter_cache[key]).to(
+            device=x.device, dtype=x.dtype
+        )  # (n_bands,1,filter_len)
         y = torch.zeros(*x.shape, weight.shape[1], device=self.device)
 
         for i_band in range(weight.shape[-1]):
-            y[..., i_band] = fftconvolve(x.transpose(2,1),
-                                    weight[:, i_band].unsqueeze(0).unsqueeze(-1).repeat(x.shape[0],1,x.shape[0]).transpose(2,1),
-                                    mode='full').transpose(2,1)[:, :x.shape[1], :]
-    
+            y[..., i_band] = fftconvolve(
+                x.transpose(2, 1),
+                weight[:, i_band]
+                .unsqueeze(0)
+                .unsqueeze(-1)
+                .repeat(x.shape[0], 1, x.shape[0])
+                .transpose(2, 1),
+                mode="full",
+            ).transpose(2, 1)[:, : x.shape[1], :]
+
         return y  # shape (batch, time, channels, n_bands)
-    
+
     def discard_last_n_percent(self, x, n_percent):
         # Discard last n%
         last_id = int(np.round((1 - n_percent / 100) * x.shape[1]))
@@ -500,12 +530,18 @@ class edc_loss(nn.Module):
         return out
 
     def forward(self, y_pred, y_true):
-        if self.add_noise: 
-            self.noise_term = torch.tensor(scipy.io.loadmat(self.noise_file)['noise_term']).to(self.device).to(torch.float64)
+        if self.add_noise:
+            self.noise_term = (
+                torch.tensor(scipy.io.loadmat(self.noise_file)["noise_term"])
+                .to(self.device)
+                .to(torch.float64)
+            )
         if self.snr is not None:
             energy_pred = torch.mean(y_pred**2).item()
-            energy_noise = energy_pred / (10**(self.snr/10))
-            self.noise_term = self.noise_term * torch.sqrt(torch.tensor(energy_noise) / torch.mean(self.noise_term**2))
+            energy_noise = energy_pred / (10 ** (self.snr / 10))
+            self.noise_term = self.noise_term * torch.sqrt(
+                torch.tensor(energy_noise) / torch.mean(self.noise_term**2)
+            )
         # assert that y_pred and y_true have the same shape = (n_batch, n_samples, n_channels)
         if len(y_pred.shape) == 1:
             y_pred = y_pred.unsqueeze(0).unsqueeze(-1)
@@ -529,14 +565,22 @@ class edc_loss(nn.Module):
             try:
                 if self.scale == "log":
                     clip_indx = torch.nonzero(
-                        y_true_edc < (torch.max(y_true_edc, dim=1, keepdim=True)[0] + self.clip_level),
+                        y_true_edc
+                        < (
+                            torch.max(y_true_edc, dim=1, keepdim=True)[0]
+                            + self.clip_level
+                        ),
                         as_tuple=True,
                     )
                     y_pred_edc[clip_indx] = -180
                     y_true_edc[clip_indx] = -180
                 else:
                     clip_indx = torch.nonzero(
-                        y_true_edc < (torch.max(y_true_edc, dim=1, keepdim=True)[0] * 10**(self.clip_level / 10)),
+                        y_true_edc
+                        < (
+                            torch.max(y_true_edc, dim=1, keepdim=True)[0]
+                            * 10 ** (self.clip_level / 10)
+                        ),
                         as_tuple=True,
                     )
                     y_pred_edc[clip_indx] = 0

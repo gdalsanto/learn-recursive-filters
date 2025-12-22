@@ -19,13 +19,14 @@ import losses
 from target import get_noise
 from utils import parse_config, unpack_functions
 
+
 def main(config_dict):
     """
     Analyze the loss surface/profile for an FDN model.
-    
+
     This function investigates how the loss varies with different parameter values,
     specifically the attenuation parameters of the FDN.
-    
+
     Args:
         config_dict: Configuration dictionary containing FDN, loss, and optimization parameters
     """
@@ -44,10 +45,10 @@ def main(config_dict):
     fdn = FDN(config["fdn"])
     fdn.set_model(
         output_layer=dsp.iFFTAntiAlias(
-            nfft=config["fdn"].nfft, 
-            alias_decay_db=config["fdn"].alias_decay_db, 
-            device=config_dict.device, 
-            dtype=torch.float64
+            nfft=config["fdn"].nfft,
+            alias_decay_db=config["fdn"].alias_decay_db,
+            device=config_dict.device,
+            dtype=torch.float64,
         )
     )
     # ========== Save Configuration ==========
@@ -55,28 +56,36 @@ def main(config_dict):
     output_file = os.path.join(config["loss"].output_dir, "config.yml")
     with open(output_file, "w") as file:
         yaml.dump(config, file)
-    config["loss"].criteria = unpack_functions(losses, config_dict.losses, config_dict.device)
+    config["loss"].criteria = unpack_functions(
+        losses, config_dict.losses, config_dict.device
+    )
 
     # ========== Input Signal Generation ==========
-    # Create an impulse signal so that we can the IR 
+    # Create an impulse signal so that we can the IR
     input_signal = signal_gallery(
-        signal_type="impulse", 
-        batch_size=1, 
-        n=1, 
-        n_samples=config["fdn"].nfft, 
+        signal_type="impulse",
+        batch_size=1,
+        n=1,
+        n_samples=config["fdn"].nfft,
     )
-    input_signal = torch.tensor(input_signal, dtype=torch.float64, device=config_dict.device)
-    
+    input_signal = torch.tensor(
+        input_signal, dtype=torch.float64, device=config_dict.device
+    )
+
     # ========== Loss Surface/Profile Setup ==========
     # Create either a 1D profile or 2D surface depending on configuration
     if config["indx_profile"] is not None:
         # 1D loss profile: vary a single parameter
         config["loss"].param_config = [config["param"][config["indx_profile"]]]
-        loss_surface = LossProfile(fdn.model, config["loss"], device=config_dict.device, dtype=torch.float64)
+        loss_surface = LossProfile(
+            fdn.model, config["loss"], device=config_dict.device, dtype=torch.float64
+        )
     else:
         # 2D loss surface: vary two parameters
         config["loss"].param_config = config["param"]
-        loss_surface = LossSurface(fdn.model, config["loss"], device=config_dict.device, dtype=torch.float64)
+        loss_surface = LossSurface(
+            fdn.model, config["loss"], device=config_dict.device, dtype=torch.float64
+        )
 
     # Set the raw parameters for the two dimensions being analyzed
     loss_surface.set_raw_parameter(
@@ -91,10 +100,10 @@ def main(config_dict):
         config["param"][1].param_map,
         config["param"][1].indx,
     )
-    
+
     # ========== Target Signal Generation ==========
     fdn_target_ir = fdn.model(input_signal).detach()
-    energy_fdn = torch.mean(torch.pow(torch.abs(fdn_target_ir), 2))    
+    energy_fdn = torch.mean(torch.pow(torch.abs(fdn_target_ir), 2))
     # Save the target FDN impulse response
     with torch.no_grad():
         save_audio(
@@ -105,20 +114,22 @@ def main(config_dict):
         # save also the raw values
         scipy.io.savemat(
             os.path.join(config["loss"].output_dir, "fdn_target_ir.mat"),
-            {"fdn_target_ir": fdn_target_ir.cpu().numpy()}
+            {"fdn_target_ir": fdn_target_ir.cpu().numpy()},
         )
     print(f"Random FDN delays: {config['target_fdn'].delays}")
     fdn_rnd = FDN(config["target_fdn"])
     fdn_rnd.set_model(
         output_layer=dsp.iFFTAntiAlias(
-            nfft=config["target_fdn"].nfft, 
+            nfft=config["target_fdn"].nfft,
             alias_decay_db=config["target_fdn"].alias_decay_db,
             device=config_dict.device,
-            dtype=torch.float64
+            dtype=torch.float64,
         )
     )
-    
-    loss_surface_rnd = LossProfile(fdn_rnd.model, config["loss"], device=config_dict.device, dtype=torch.float64)
+
+    loss_surface_rnd = LossProfile(
+        fdn_rnd.model, config["loss"], device=config_dict.device, dtype=torch.float64
+    )
     loss_surface_rnd.set_raw_parameter(
         config["param"][0].key,
         torch.tensor(config["param"][0].target_value),
@@ -133,12 +144,12 @@ def main(config_dict):
     )
     fdn_rnd.normalize_energy(energy_fdn.item(), is_time=True)
     target_signal = fdn_rnd.model(input_signal).detach()
-    scipy.io.savemat(   
+    scipy.io.savemat(
         os.path.join(config["loss"].output_dir, "fdn_target_ir_gt_clean.mat"),
-        {"fdn_target_ir": target_signal.cpu().numpy()}
+        {"fdn_target_ir": target_signal.cpu().numpy()},
     )
     if config["add_noise_to_target"]:
-        noise_level_lin = energy_fdn / (10**(config_dict.snr_db/10))
+        noise_level_lin = energy_fdn / (10 ** (config_dict.snr_db / 10))
         noise = torch.tensor(
             get_noise(
                 noise_level_db=10 * torch.log10(noise_level_lin).item(),
@@ -151,8 +162,8 @@ def main(config_dict):
     # Save the noise signal in mat in the main directory
     if config["add_noise_to_target"]:
         scipy.io.savemat(
-            os.path.join(config["loss"].output_dir,"noise_term_ref.mat"),
-            {"noise_term_ref": noise.cpu().numpy()}
+            os.path.join(config["loss"].output_dir, "noise_term_ref.mat"),
+            {"noise_term_ref": noise.cpu().numpy()},
         )
         # generate another instance for the learnable FDN
         noise = torch.tensor(
@@ -164,8 +175,8 @@ def main(config_dict):
             device=config_dict.device,
         )
         scipy.io.savemat(
-            os.path.join(config["loss"].output_dir,"noise_term.mat"),
-            {"noise_term": noise.cpu().numpy()}
+            os.path.join(config["loss"].output_dir, "noise_term.mat"),
+            {"noise_term": noise.cpu().numpy()},
         )
     # Save the target FDN impulse response
     save_audio(
@@ -174,9 +185,9 @@ def main(config_dict):
         fs=config["fdn"].sample_rate,
     )
     # save also the raw values
-    scipy.io.savemat(   
+    scipy.io.savemat(
         os.path.join(config["loss"].output_dir, "fdn_target_ir_gt.mat"),
-        {"fdn_target_ir": target_signal.cpu().numpy()}
+        {"fdn_target_ir": target_signal.cpu().numpy()},
     )
 
     # Compute losses between FDN target IR and WGN target
@@ -185,20 +196,22 @@ def main(config_dict):
         criterion_name = loss_surface.criteria[i_crit].name
         loss_target_ir[criterion_name] = (
             loss_surface.criteria[i_crit](fdn_target_ir, target_signal)
-            .cpu().detach().numpy()
+            .cpu()
+            .detach()
+            .numpy()
         )
-                    
+
     # ========== Loss Computation ==========
     output_file = os.path.join(config["loss"].output_dir, "loss.mat")
     loss = loss_surface.compute_loss(input_signal, target_signal)
     loss_dict = {}
-    loss_dict['loss_name'] = []
+    loss_dict["loss_name"] = []
     for i_crit in range(len(loss_surface.criteria)):
-        loss_dict[loss_surface.criteria[i_crit].name] = loss[..., i_crit],
-        loss_dict['loss_name'].append(str(loss_surface.criteria[i_crit].name))
-    loss_dict['loss'] = loss 
+        loss_dict[loss_surface.criteria[i_crit].name] = (loss[..., i_crit],)
+        loss_dict["loss_name"].append(str(loss_surface.criteria[i_crit].name))
+    loss_dict["loss"] = loss
     scipy.io.savemat(output_file, loss_dict)
-    
+
     # save the minimum RIR for each criterion
     for i_crit in range(len(loss_surface.criteria)):
         criterion_name = loss_surface.criteria[i_crit].name
@@ -218,10 +231,10 @@ def main(config_dict):
             min_rir.squeeze().float(),
             fs=config["fdn"].sample_rate,
         )
-        # save also the raw values 
+        # save also the raw values
         scipy.io.savemat(
             os.path.join(config["loss"].output_dir, f"fdn_min_ir_{criterion_name}.mat"),
-            {"fdn_min_ir": min_rir.cpu().numpy()}
+            {"fdn_min_ir": min_rir.cpu().numpy()},
         )
 
     fig, ax = loss_surface.plot_loss(loss)
@@ -230,7 +243,7 @@ def main(config_dict):
 if __name__ == "__main__":
     """
     Main entry point for the script.
-    
+
     Handles command-line arguments, loads configuration, and executes the analysis.
     """
 
@@ -240,9 +253,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--output_dir", 
-        type=str, 
-        help="Directory to save loss plots and results"
+        "--output_dir", type=str, help="Directory to save loss plots and results"
     )
     parser.add_argument(
         "--config_file",
@@ -275,7 +286,7 @@ if __name__ == "__main__":
     if args.output_dir is not None:
         # Command-line argument overrides config file
         config_dict.loss_config.output_dir = args.output_dir
-        
+
     if config_dict.loss_config.output_dir is not None:
         # Create output directory if it doesn't exist
         if not os.path.exists(config_dict.loss_config.output_dir):
@@ -289,4 +300,3 @@ if __name__ == "__main__":
 
     # ========== Execute Analysis ==========
     main(config_dict)
-
