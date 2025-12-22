@@ -1,6 +1,6 @@
 # Learning Recursive Attenuation Filters Under Noisy Conditions 
 
-[JAES-DAFx paper (arXiv)](https://arxiv.org/abs/2406.06185) 
+[JAES-DAFx paper (arXiv)](https://arxiv.org/abs/2512.16318) 
 
 ### 🛠️ Getting started
 When cloning this repository make sure to clone all the submodules by running 
