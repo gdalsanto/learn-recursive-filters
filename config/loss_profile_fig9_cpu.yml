@@ -16,14 +16,14 @@ param_config:
       upper_bound: 3.75
       target_value: 2
       scale: 'linear'
-      n_steps: 3
+      n_steps: 1000
       indx: 0
     - key: 'feedback_loop.feedforward.attenuation'  # cutoff frequency (rads/s), target 10k Hz
       lower_bound: 0.2094 # 1.6 kHz
       upper_bound: 2.0944 # 16 kHz
       target_value: 1.3090
       scale: 'log'
-      n_steps: 3
+      n_steps: 1000
       indx: 1
 loss_config:
   n_runs: 1

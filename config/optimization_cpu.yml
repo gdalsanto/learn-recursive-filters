@@ -20,10 +20,10 @@ trainer_config:
   learn_independent_params: False
   sparsity_weight: 1.0
 loss_weights: [1, 1, 1]
-device: 'cpu'
+device: 'cuda'
 add_noise_to_target: True
 snr_db: 10
-num_targets: 2
+num_targets: 100
 losses:
   - ['EDC', {'func_name': 'edc_loss', 'args': {'name': 'EDC_lin', 'is_broadband': False, 'scale': 'linear','n_fractions': 3, 'energy_norm': False, 'clip': False, 't_mix': 0.0, 'add_noise': True}}]
   - ['EDC', {'func_name': 'edc_loss', 'args': {'name': 'EDC_log', 'is_broadband': False, 'scale': 'log','n_fractions': 3, 'energy_norm': False, 'clip': False, 't_mix': 0.0, 'add_noise': True}}]
