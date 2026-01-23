@@ -14,7 +14,7 @@ output_folder = "output/";
 
 test_folders = ["no_perturb_", "no_perturb_snr10_noiseinj_", "no_perturb_snr10_"]; % fig 8
 test_folders = ["no_perturb_noearly_", "no_perturb_noearly_snr10_noiseinj_", "no_perturb_noearly_snr10_"]; % fig 9
-% test_folders = ["no_perturb_mss_"]; % fig 10
+test_folders = ["no_perturb_mss_"]; % fig 10
 
 test_labels = ["$\mathcal{L}(h,\hat{h})$", "$\mathcal{L}(h + w_1,\hat{h} +w_2 )$", "$\mathcal{L}(h+w_1,\hat{h})$"]; 
 
@@ -24,7 +24,7 @@ test_folders = test_folders + type_indx(indx);
 loss_id = [1, 2, 3];
 
 % read config file
-yml_file = "loss_profile_plot_III_gpu.yml";
+yml_file = "loss_profile_fig10_cpu.yml";
 config = yaml.loadFile(fullfile("..", 'config', yml_file));
 fs = 48000; 
 
@@ -66,8 +66,8 @@ for i_test = 1:length(test_folders)
         temp = eval(loss_name_str(i)); % for some silly reason there's one more dim
         for j = 1:size(temp, 1)
             % Standardization - NOTE: no standardiation for plot 10 
-            losses(i_test, j, :, i) = temp(j, :, :) - mean(temp(j, :, :), 'all');
-            losses(i_test, j, :, i) = losses(i_test, j, :, i) ./ std(losses(i_test, j, :, i), 0, 'all');
+            losses(i_test, j, :, i) = temp(j, :, :); % - mean(temp(j, :, :), 'all');
+            losses(i_test, j, :, i) = losses(i_test, j, :, i); % ./ std(losses(i_test, j, :, i), 0, 'all');
         end
         temp = losses(i_test, :, :, i);
     end    
@@ -129,7 +129,7 @@ for i_test = length(test_folders):-1:1
             xlabel('$f_{\textrm{c}}$ (kHz)','Interpreter','latex')
         end
         xline(target, ':', 'LineWidth', 1.5, 'Color', 'k')
-        ylim([-2.5, 4])
+        % ylim([-2.5, 4])
 
     end
 end

@@ -30,9 +30,9 @@ loss_config:
   output_dir: "output/no_perturb_mss_rt" 
 indx_profile: 0
 device: 'cpu'
-add_noise_to_target: True
+add_noise_to_target: False
 snr_db: 10
 losses:
-  - ['MSS', {'func_name': 'mss_loss', 'args': {'name': 'MSS_lin', 'energy_norm': False,  'alpha_lin': 1, 'alpha_log': 0, 't_mix': 0.0, 'add_noise': True, 'noise_file': './output/no_perturb_mss_rt/noise_term.mat'}}]
-  - ['MSS', {'func_name': 'mss_loss', 'args': {'name': 'MSS_log', 'energy_norm': False,  'alpha_lin': 0, 'alpha_log': 1, 't_mix': 0.0, 'add_noise': True, 'noise_file': './output/no_perturb_mss_rt/noise_term.mat'}}]
-  - ['MSS', {'func_name': 'mss_loss', 'args': {'name': 'MSS', 'energy_norm': False,  'alpha_lin': 1, 'alpha_log': 1, 't_mix': 0.0, 'add_noise': True, 'noise_file': './output/no_perturb_mss_rt/noise_term.mat'}}]
+  - ['MSS', {'func_name': 'mss_loss', 'args': {'name': 'MSS_lin', 'energy_norm': False,  'alpha_lin': 1, 'alpha_log': 0, 't_mix': 0.0, 'add_noise': False}}]
+  - ['MSS', {'func_name': 'mss_loss', 'args': {'name': 'MSS_log', 'energy_norm': False,  'alpha_lin': 0, 'alpha_log': 1, 't_mix': 0.0, 'add_noise': False}}]
+  - ['MSS', {'func_name': 'mss_loss', 'args': {'name': 'MSS', 'energy_norm': False,  'alpha_lin': 1, 'alpha_log': 1, 't_mix': 0.0, 'add_noise': False}}]
