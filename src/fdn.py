@@ -121,6 +121,22 @@ class FDN:
         output_gain.assign_value(
             torch.ones((1, self.N), device=self.config_dict.device)
         )
+
+        # output equlizer 
+        tone_corrector = dsp.GEQ(
+            size=(1,1),
+            octave_interval=1,
+            nfft=self.config_dict.nfft,
+            fs=self.config_dict.sample_rate,
+            device=self.config_dict.device,
+            alias_decay_db=self.config_dict.alias_decay_db,
+            dtype=torch.float64,
+            requires_grad=True,
+        )
+        # load the optimal values that lead to a flat response on 0 dB 
+        optimal_gains = torch.tensor([ 3.7172e-04, -3.6866e-04, -1.8111e-04, -2.5179e-04, -1.2642e-04, -2.8410e-04, -1.3744e-04, -2.5453e-04, -1.0379e-04, -8.5060e-05, -3.4730e-04, -4.9282e-04]).unsqueeze(-1).unsqueeze(-1)
+        tone_corrector.assign_value(10**(optimal_gains/20))
+
         # RECURSION
         # Feedback loop with delays
         delays = dsp.parallelDelay(
@@ -163,6 +179,7 @@ class FDN:
                     "input_gain": input_gain,
                     "feedback_loop": feedback_loop,
                     "output_gain": output_gain,
+                    "tone_corrector": tone_corrector,
                 }
             )
         )
