@@ -21,7 +21,7 @@ from target import get_noise
 import losses
 
 
-def main(config_dict):
+def main(config_dict, args):
     """
     Analyze the loss surface/profile for an FDN model.
 
@@ -35,6 +35,7 @@ def main(config_dict):
     # ========== Configuration Setup ==========
     # Parse and prepare the configuration
     config = parse_config(config_dict)
+    config["real_rir_dir"] = args.real_rir_dir
     config["criteria"] = config_dict.losses
     # set the right random seed for reproducibility
     torch.manual_seed(84)
@@ -64,43 +65,82 @@ def main(config_dict):
 
     root_dir = config["output_dir"]
 
-
     # Load all WAV files from the specified directory and concatenate them
-    input_signal = torch.empty((0, config["fdn"].nfft, 1), dtype=torch.float64, device=config_dict.device)
+    rirs = torch.empty(
+        (0, config["fdn"].nfft, 1), dtype=torch.float64, device=config_dict.device
+    )
     filenames = []
-    for i_file , filename in enumerate(os.listdir(config_dict.real_rir_dir)):
-        if filename.endswith('.wav'):
-            wav_path = os.path.join(config_dict.real_rir_dir, filename)
+    padding = []
+    for i_file, filename in enumerate(os.listdir(config["real_rir_dir"])):
+        if filename.endswith(".wav"):
+            wav_path = os.path.join(config["real_rir_dir"], filename)
             filenames.append(os.path.splitext(filename)[0])
             sig, fs = sf.read(wav_path)
             if fs != config["fdn"].sample_rate:
-                raise ValueError(f"Input signal sample rate {fs} does not match FDN sample rate {config['fdn'].sample_rate}")
+                # change sampling rate for fdn
+                config["fdn"].sample_rate = fs
+
             # Ensure the signal is mono
+            padding.append(0)
             if sig.ndim > 1:
                 sig = sig[:, 0]
             # Pad or truncate to match nfft
             if len(sig) < config["fdn"].nfft:
-                sig = np.pad(sig, (0, config["fdn"].nfft - len(sig)), 'constant')
+                padding[-1] = config["fdn"].nfft - len(sig)
+                sig = np.pad(sig, (0, padding[-1]), "constant")
             else:
-                sig = sig[:config["fdn"].nfft]
-            input_signal = torch.vstack((input_signal, torch.tensor(sig, dtype=torch.float64, device=config_dict.device).unsqueeze(0).unsqueeze(-1)))
+                sig = sig[: config["fdn"].nfft]
+            rirs = torch.vstack(
+                (
+                    rirs,
+                    torch.tensor(sig, dtype=torch.float64, device=config_dict.device)
+                    .unsqueeze(0)
+                    .unsqueeze(-1),
+                )
+            )
 
-    config_dict.num_targets = input_signal.shape[0]
-    # load a mat file with the noise values (n_bands x )
-    onset_time = scipy.io.loadmat(os.path.join(config_dict.real_rir_dir, 'onset_time.mat'))
-    crop_length = int(0.02 * config["fdn"].sample_rate)  # 20 ms
+    config_dict.num_targets = rirs.shape[0]
+
     # --- Trainer config_dict ---
     for i_target in range(config_dict.num_targets):
-        cur_rir = input_signal[i_target, :, :]
+        cur_rir_info = scipy.io.loadmat(
+            os.path.join(config["real_rir_dir"], filenames[i_target] + "_analysis.mat")
+        )
+        cur_rir = rirs[i_target, :, :].unsqueeze(0)
+        if cur_rir_info["onset"] > 0:
+            cur_rir = cur_rir[:, cur_rir_info["onset"].item() :, :]
+            cur_rir = torch.nn.functional.pad(
+                cur_rir, (0, 0, 0, cur_rir_info["onset"].item()), "constant", 0.0
+            )
         # update config dict with the number of target
         config["output_dir"] = os.path.join(root_dir, f"target_{filenames[i_target]}")
         # make the directory
         os.makedirs(config["output_dir"], exist_ok=True)
         # extract the noise from the target rir
-        noise_segment = cur_rir[i_target, onset_time[i_target]-crop_length:onset_time[i_target], :].clone()
-        # manipulate the noise segement 
-        noise_segment_ext = noise_segment.repeat(int(config["fdn"].nfft / noise_segment.shape[0]) + 1, 1)
- 
+        start_noise = int(cur_rir_info["noise_floor_samps"].item())
+        end_noise = cur_rir.shape[1] - padding[i_target]
+        noise_segment = cur_rir[:, start_noise:end_noise, :].clone()
+        noise_fft = torch.fft.fft(noise_segment, n=config["fdn"].nfft, dim=1)
+        # randomize phase of the noise
+        random_phase = (
+            2
+            * torch.pi
+            * torch.rand(
+                noise_fft.shape, device=noise_fft.device, dtype=noise_segment.dtype
+            )
+        ) - torch.pi
+        random_phase[:, 0, :] = 0.0  # keep DC component unchanged
+        random_phase[:, config["fdn"].nfft // 2, :] = (
+            0.0  # keep Nyquist component unchanged
+        )
+        random_phase[:, (config["fdn"].nfft // 2 + 1) :, :] = -torch.flip(
+            random_phase[:, 1 : config["fdn"].nfft // 2, :], dims=[1]
+        )
+        # manipulate the noise segement
+        noise_segment_ext = torch.fft.ifft(
+            torch.polar(torch.abs(noise_fft), random_phase), n=config["fdn"].nfft, dim=1
+        ).real
+
         # compute energy of the target FDN IR
         energy_target_rir = torch.mean(torch.pow(torch.abs(cur_rir), 2))
         energy_noise = torch.mean(torch.pow(torch.abs(noise_segment_ext), 2))
@@ -132,7 +172,7 @@ def main(config_dict):
         rir_file = os.path.join(config["output_dir"], "target_rir.wav")
         sf.write(
             rir_file,
-            target_fdn_ir.squeeze().detach().cpu().numpy(),
+            cur_rir.squeeze().detach().cpu().numpy(),
             config["fdn"].sample_rate,
         )
         print(f"Target RIR saved to {rir_file}")
@@ -143,7 +183,9 @@ def main(config_dict):
             # ========== FDN Model Initialization ==========
             # Create a FDN model with one-pole filter and anti-aliasing
             fdn = get_model(config_dict, config["fdn"], seed=84 + i_target)
-            fdn.normalize_energy(target_energy=energy_target_rir - energy_noise, is_time=True)
+            fdn.normalize_energy(
+                target_energy=energy_target_rir - energy_noise, is_time=True
+            )
             init_rt = np.random.uniform(1, 3.5, 1)
             init_fc = (
                 2
@@ -285,6 +327,12 @@ if __name__ == "__main__":
         default="config.yml",
         help="Path to YAML configuration file for the loss profile analysis",
     )
+    parser.add_argument(
+        "--real_rir_dir",
+        type=str,
+        default=None,
+        help="Path to directory containing real RIR WAV files",
+    )
 
     args = parser.parse_args()
 
@@ -323,4 +371,4 @@ if __name__ == "__main__":
         os.makedirs(config_dict.trainer_config.train_dir)
 
     # ========== Execute Analysis ==========
-    main(config_dict)
+    main(config_dict, args)

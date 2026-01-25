@@ -1,0 +1,30 @@
+fdn_config:
+  rt60: [0.5] 
+  nfft: 192000
+  attenuation_type: 'one_pole'
+  N: 6
+  alias_decay_db: 0
+  sample_rate: 48000
+target_fdn_config:
+  rt60: [0.5] 
+  nfft: 192000
+  attenuation_type: 'one_pole'
+  N: 32
+  alias_decay_db: 0
+  sample_rate: 48000
+trainer_config:
+  num: 256
+  max_epochs: 40
+  patience_delta: 0.0001
+  train_dir: "output/optimization"  
+  learn_independent_params: False
+  sparsity_weight: 1.0
+loss_weights: [1, 1, 1]
+device: 'cuda'
+add_noise_to_target: True
+snr_db: 10
+num_targets: 100
+losses:
+  - ['EDC', {'func_name': 'edc_loss', 'args': {'name': 'EDC_lin', 'is_broadband': False, 'scale': 'linear','n_fractions': 3, 'energy_norm': False, 'clip': False, 't_mix': 0.0, 'add_noise': True}}]
+  - ['EDC', {'func_name': 'edc_loss', 'args': {'name': 'EDC_log', 'is_broadband': False, 'scale': 'log','n_fractions': 3, 'energy_norm': False, 'clip': False, 't_mix': 0.0, 'add_noise': True}}]
+  - ['MSS', {'func_name': 'mss_loss', 'args': {'name': 'MSS', 'energy_norm': False,  'alpha_lin': 1, 'alpha_log': 1, 't_mix': 0.0, 'add_noise': True}}]

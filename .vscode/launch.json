@@ -54,6 +54,20 @@
             ]
         },
         {
+            "name": "Optimize real data",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "src/test_optimization_real_data.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--config_file",
+                "config/optimization_real_data_cpu.yml",
+                "--real_rir_dir",
+                "real_rirs/srir"
+            ]
+        },
+        {
             "name": "Target Gen",
             "type": "debugpy",
             "request": "launch",

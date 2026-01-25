@@ -1,6 +1,7 @@
+close all; clear all; clc 
 %% Plot RIR waveform with onset marker for all analyzed files
-matDir = fullfile(pwd, '');
-wavDir = fullfile(pwd, '');
+matDir = fullfile(pwd, 'mit');
+wavDir = fullfile(pwd, 'mit');
 
 matFiles = dir(fullfile(matDir, '*_analysis.mat'));
 if isempty(matFiles)
@@ -31,13 +32,23 @@ for k = 1:numel(matFiles)
     t = (0:numel(x)-1) ./ fs;
 
     figure('Name', baseName, 'NumberTitle', 'off');
+
+    subplot(2, 1, 1);
     plot(t, x, 'b-');
     hold on;
     xline(onsetSample / fs, 'r--', 'LineWidth', 1.5);
     hold off;
     xlabel('Time (s)');
     ylabel('Amplitude');
-    title(sprintf('%s waveform with onset', baseName));
+    title(sprintf('%s waveform with onset', strrep(baseName, '_', ' ')));
     legend({'Waveform', 'Onset'}, 'Location', 'best');
     grid on;
+
+    subplot(2, 1, 2);
+    plot(double(data.bands), double(data.rt60), 'b-');
+    xlabel('Frequency (Hz)');
+    ylabel('RT60 (s)');
+    title(sprintf('%s rt60', strrep(baseName, '_', ' ')));
+    grid on;
+    close all
 end
