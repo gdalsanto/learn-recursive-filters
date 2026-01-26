@@ -1,7 +1,7 @@
 close all; clear all; clc 
 %% Plot RIR waveform with onset marker for all analyzed files
-matDir = fullfile(pwd, 'mit');
-wavDir = fullfile(pwd, 'mit');
+matDir = fullfile(pwd, 'sdm');
+wavDir = fullfile(pwd, 'sdm');
 
 matFiles = dir(fullfile(matDir, '*_analysis.mat'));
 if isempty(matFiles)
@@ -26,7 +26,7 @@ for k = 1:numel(matFiles)
 
     [x, fs] = audioread(wavPath);
     if size(x, 2) > 1
-        x = mean(x, 2); % use mono
+        x = x(:, 1); % use mono
     end
 
     t = (0:numel(x)-1) ./ fs;
@@ -51,4 +51,12 @@ for k = 1:numel(matFiles)
     title(sprintf('%s rt60', strrep(baseName, '_', ' ')));
     grid on;
     close all
+
+
+    % extract noise floor 
+    start_noise = int64(data.noise_floor_samps) + data.onset;
+    noise_floor = x(start_noise:end);
+    snr = mean(abs(x).^2) / mean(abs(noise_floor).^2);
+    disp(baseName)
+    disp("snr: " + num2str(snr));
 end
