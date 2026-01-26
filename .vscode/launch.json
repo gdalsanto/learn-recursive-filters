@@ -64,7 +64,9 @@
                 "--config_file",
                 "config/optimization_real_data_cpu.yml",
                 "--real_rir_dir",
-                "real_rirs/srir"
+                "real_rirs/sdm", 
+                "--noise_file",
+                "real_rirs/noise/pb132_noise.wav"
             ]
         },
         {

@@ -36,6 +36,7 @@ def main(config_dict, args):
     # Parse and prepare the configuration
     config = parse_config(config_dict)
     config["real_rir_dir"] = args.real_rir_dir
+    config["noise_file"] = args.noise_file
     config["criteria"] = config_dict.losses
     # set the right random seed for reproducibility
     torch.manual_seed(84)
@@ -99,6 +100,14 @@ def main(config_dict, args):
                 )
             )
 
+    # load noise file
+    noise_signal, fs_noise = sf.read(config["noise_file"])
+    if fs_noise != config["fdn"].sample_rate:
+        raise ValueError(
+            f"Sampling rate of noise file ({fs_noise} Hz) does not match FDN sampling rate ({config['fdn'].sample_rate} Hz)."
+        )
+
+
     config_dict.num_targets = rirs.shape[0]
 
     # --- Trainer config_dict ---
@@ -112,14 +121,25 @@ def main(config_dict, args):
             cur_rir = torch.nn.functional.pad(
                 cur_rir, (0, 0, 0, cur_rir_info["onset"].item()), "constant", 0.0
             )
+        energy_target_rir = torch.mean(torch.pow(torch.abs(cur_rir), 2))
+        energy_noise =  energy_target_rir / (10**(config["snr_db"] / 10)) 
+        # crop the noise to match the length of the RIR
+        noise_signal = noise_signal[:rirs.shape[1], ]
+        # normalize the noise to have the desired energy
+        noise_signal = noise_signal / np.sqrt(np.mean(noise_signal**2)) * np.sqrt(
+            energy_noise.detach().cpu().numpy()
+        )
+        # add noise to the target rir
+        cur_rir = cur_rir + torch.tensor(
+            noise_signal, dtype=torch.float64, device=config_dict.device
+        ).unsqueeze(0).unsqueeze(-1)
         # update config dict with the number of target
         config["output_dir"] = os.path.join(root_dir, f"target_{filenames[i_target]}")
         # make the directory
         os.makedirs(config["output_dir"], exist_ok=True)
         # extract the noise from the target rir
         start_noise = int(cur_rir_info["noise_floor_samps"].item())
-        end_noise = cur_rir.shape[1] - padding[i_target]
-        noise_segment = cur_rir[:, start_noise:end_noise, :].clone()
+        noise_segment = cur_rir[:, start_noise:, :].clone()
         noise_fft = torch.fft.fft(noise_segment, n=config["fdn"].nfft, dim=1)
         # randomize phase of the noise
         random_phase = (
@@ -139,13 +159,14 @@ def main(config_dict, args):
         # manipulate the noise segement
         noise_segment_ext = torch.fft.ifft(
             torch.polar(torch.abs(noise_fft), random_phase), n=config["fdn"].nfft, dim=1
-        ).real
-
-        # compute energy of the target FDN IR
-        energy_target_rir = torch.mean(torch.pow(torch.abs(cur_rir), 2))
-        energy_noise = torch.mean(torch.pow(torch.abs(noise_segment_ext), 2))
-        snr = energy_target_rir / energy_noise
-
+        ).real 
+        # match the energy to the original noise segment
+        energy_noise_segment = torch.mean(torch.pow(torch.abs(noise_segment), 2))
+        energy_noise_segment_ext = torch.mean(torch.pow(torch.abs(noise_segment_ext), 2))
+        noise_segment_ext = noise_segment_ext * torch.sqrt(
+            energy_noise_segment / energy_noise_segment_ext
+        )
+        # save the noise segment
         scipy.io.savemat(
             os.path.join(config["output_dir"], "noise_term.mat"),
             {"noise_term": noise_segment_ext.cpu().numpy()},
@@ -332,6 +353,12 @@ if __name__ == "__main__":
         type=str,
         default=None,
         help="Path to directory containing real RIR WAV files",
+    )
+    parser.add_argument(
+        "--noise_file",
+        type=str,
+        default=None,
+        help="Path to the WAV file containing noise",
     )
 
     args = parser.parse_args()
