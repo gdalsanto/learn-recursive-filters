@@ -283,7 +283,7 @@ def main(config_dict, args):
                 print(f"Error with respect to target parameter {error}")
 
             del trainer, fdn
-        del target_fdn_ir, target_fdn, dataset, train_loader, valid_loader
+        del dataset, train_loader, valid_loader
 
 
 def get_model(config_dict, config, seed=None):
