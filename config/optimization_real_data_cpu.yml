@@ -13,12 +13,12 @@ target_fdn_config:
   alias_decay_db: 0
   sample_rate: 48000
 trainer_config:
-  num: 256
-  max_epochs: 40
+  num: 16
+  max_epochs: 2
   patience_delta: 0.0001
-  train_dir: "output/optimization_srir"  
+  train_dir: "output/optimization_cpu_test"  
   learn_independent_params: True
-  sparsity_weight: 2.0
+  sparsity_weight: 3.0
 loss_weights: [1, 1, 1]
 device: 'cpu'
 add_noise_to_target: True
