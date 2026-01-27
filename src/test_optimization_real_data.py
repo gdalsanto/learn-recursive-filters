@@ -43,6 +43,7 @@ def main(config_dict, args):
     np.random.seed(84)
     config["fdn"].delays = None  # force random co-prime delays
     config["target_fdn"].delays = None  # force random co-prime delays
+
     # ========== Save Configuration ==========
     # Write the configuration to a YAML file for reproducibility
     output_file = os.path.join(config["output_dir"], "config.yml")
@@ -51,6 +52,7 @@ def main(config_dict, args):
     config["criteria"] = unpack_functions(
         losses, config_dict.losses, config_dict.device
     )
+    root_dir = config["output_dir"]
 
     # ========== Input Signal Generation ==========
     # Create an impulse signal
@@ -64,15 +66,14 @@ def main(config_dict, args):
         input_signal, dtype=torch.float64, device=config_dict.device
     )
 
-    root_dir = config["output_dir"]
-
+    # ========== Real RIR Loading ==========
     # Load all WAV files from the specified directory and concatenate them
     rirs = torch.empty(
         (0, config["fdn"].nfft, 1), dtype=torch.float64, device=config_dict.device
     )
     filenames = []
     padding = []
-    for i_file, filename in enumerate(os.listdir(config["real_rir_dir"])):
+    for filename in os.listdir(config["real_rir_dir"]):
         if filename.endswith(".wav"):
             wav_path = os.path.join(config["real_rir_dir"], filename)
             filenames.append(os.path.splitext(filename)[0])
@@ -91,6 +92,7 @@ def main(config_dict, args):
                 sig = np.pad(sig, (0, padding[-1]), "constant")
             else:
                 sig = sig[: config["fdn"].nfft]
+            # Append to RIRs tensor
             rirs = torch.vstack(
                 (
                     rirs,
@@ -99,6 +101,7 @@ def main(config_dict, args):
                     .unsqueeze(-1),
                 )
             )
+    config_dict.num_targets = rirs.shape[0]
 
     # load noise file
     noise_signal, fs_noise = sf.read(config["noise_file"])
@@ -107,15 +110,16 @@ def main(config_dict, args):
             f"Sampling rate of noise file ({fs_noise} Hz) does not match FDN sampling rate ({config['fdn'].sample_rate} Hz)."
         )
 
-
-    config_dict.num_targets = rirs.shape[0]
-
+    # ========== Prepare noisy target ==========
     # --- Trainer config_dict ---
     for i_target in range(config_dict.num_targets):
+        # load analysis mat file for the current rir
         cur_rir_info = scipy.io.loadmat(
             os.path.join(config["real_rir_dir"], filenames[i_target] + "_analysis.mat")
         )
+        # prepare the current target rir
         cur_rir = rirs[i_target, :, :].unsqueeze(0)
+        # truncate the rir to the onset
         if cur_rir_info["onset"] > 0:
             cur_rir = cur_rir[:, cur_rir_info["onset"].item() :, :]
             cur_rir = torch.nn.functional.pad(
@@ -137,29 +141,11 @@ def main(config_dict, args):
         config["output_dir"] = os.path.join(root_dir, f"target_{filenames[i_target]}")
         # make the directory
         os.makedirs(config["output_dir"], exist_ok=True)
+
         # extract the noise from the target rir
         start_noise = int(cur_rir_info["noise_floor_samps"].item())
         noise_segment = cur_rir[:, start_noise:, :].clone()
-        noise_fft = torch.fft.fft(noise_segment, n=config["fdn"].nfft, dim=1)
-        # randomize phase of the noise
-        random_phase = (
-            2
-            * torch.pi
-            * torch.rand(
-                noise_fft.shape, device=noise_fft.device, dtype=noise_segment.dtype
-            )
-        ) - torch.pi
-        random_phase[:, 0, :] = 0.0  # keep DC component unchanged
-        random_phase[:, config["fdn"].nfft // 2, :] = (
-            0.0  # keep Nyquist component unchanged
-        )
-        random_phase[:, (config["fdn"].nfft // 2 + 1) :, :] = -torch.flip(
-            random_phase[:, 1 : config["fdn"].nfft // 2, :], dims=[1]
-        )
-        # manipulate the noise segement
-        noise_segment_ext = torch.fft.ifft(
-            torch.polar(torch.abs(noise_fft), random_phase), n=config["fdn"].nfft, dim=1
-        ).real 
+        noise_segment_ext = extend_noise(noise_segment, nfft=config["fdn"].nfft) 
         # match the energy to the original noise segment
         energy_noise_segment = torch.mean(torch.pow(torch.abs(noise_segment), 2))
         energy_noise_segment_ext = torch.mean(torch.pow(torch.abs(noise_segment_ext), 2))
@@ -172,9 +158,9 @@ def main(config_dict, args):
             {"noise_term": noise_segment_ext.cpu().numpy()},
         )
         # update criteria
-        for i_crit in range(len(config["criteria"])):
-            if config["criteria"][i_crit].add_noise:
-                config["criteria"][i_crit].noise_file = os.path.join(
+        for ii_crit in range(len(config["criteria"])):
+            if config["criteria"][ii_crit].add_noise:
+                config["criteria"][ii_crit].noise_file = os.path.join(
                     config["output_dir"], "noise_term.mat"
                 )
 
@@ -188,7 +174,7 @@ def main(config_dict, args):
             ].num,  # this coincides with the number of iterations gradient descent per epoch
         )
         train_loader, valid_loader = load_dataset(dataset, batch_size=1)
-        print(f"Dataset created with {len(dataset)} samples")
+
         # save the target RIR
         rir_file = os.path.join(config["output_dir"], "target_rir.wav")
         sf.write(
@@ -197,6 +183,7 @@ def main(config_dict, args):
             config["fdn"].sample_rate,
         )
         print(f"Target RIR saved to {rir_file}")
+
         # Set up the FLAMO trainer with optimization parameters
         for i_crit, criterion in enumerate(config["criteria"]):
             print(f"Using loss criterion: {criterion.name}")
@@ -205,7 +192,7 @@ def main(config_dict, args):
             # Create a FDN model with one-pole filter and anti-aliasing
             fdn = get_model(config_dict, config["fdn"], seed=84 + i_target)
             fdn.normalize_energy(
-                target_energy=energy_target_rir - energy_noise, is_time=True
+                target_energy=energy_target_rir - energy_noise_segment_ext, is_time=True
             )
             init_rt = np.random.uniform(1, 3.5, 1)
             init_fc = (
@@ -286,6 +273,18 @@ def main(config_dict, args):
                 rir_file = os.path.join(criterion_dir, "optimized_rir.wav")
                 sf.write(rir_file, ir.squeeze(), config["fdn"].sample_rate)
                 print(f"Optimized RIR saved to {rir_file}")
+                # save also the noisy target rir
+                if config["criteria"][i_crit].add_noise == True:
+                    noisy_rir_file = os.path.join(
+                        criterion_dir, "optimized_noisy_rir.wav"
+                    )
+                    ir_noise = ir + noise_segment_ext.detach().cpu().numpy()
+                    sf.write(
+                        noisy_rir_file,
+                        ir_noise.squeeze(),
+                        config["fdn"].sample_rate,
+                    )
+                    print(f"Noisy optimized RIR saved to {noisy_rir_file}")
 
             # print the final loss values and the parameters of the attenuation filter
             print(
@@ -305,6 +304,30 @@ def main(config_dict, args):
 
             del trainer, fdn
         del dataset, train_loader, valid_loader
+
+def extend_noise(noise_segment, nfft):
+    noise_fft = torch.fft.fft(noise_segment, n=nfft, dim=1)
+        # randomize phase of the noise
+    random_phase = (
+            2
+            * torch.pi
+            * torch.rand(
+                noise_fft.shape, device=noise_fft.device, dtype=noise_segment.dtype
+            )
+        ) - torch.pi
+    random_phase[:, 0, :] = 0.0  # keep DC component unchanged
+    random_phase[:, nfft // 2, :] = (
+            0.0  # keep Nyquist component unchanged
+        )
+    random_phase[:, (nfft // 2 + 1) :, :] = -torch.flip(
+            random_phase[:, 1 : nfft // 2, :], dims=[1]
+        )
+        # manipulate the noise segement
+    noise_segment_ext = torch.fft.ifft(
+            torch.polar(torch.abs(noise_fft), random_phase), n=nfft, dim=1
+        ).real
+    
+    return noise_segment_ext
 
 
 def get_model(config_dict, config, seed=None):

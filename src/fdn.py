@@ -286,6 +286,7 @@ class FDN:
             param["B"] = core.input_gain.param.cpu().numpy()
             param["C"] = core.output_gain.param.cpu().numpy()
             param["m"] = core.feedback_loop.feedforward.delays.param.cpu().numpy()
+            param["tone_corrector"] = core.tone_corrector.param.cpu().numpy()
             return param
 
     def set_raw_parameters(self, param: dict):
