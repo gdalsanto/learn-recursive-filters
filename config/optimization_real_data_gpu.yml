@@ -16,7 +16,7 @@ trainer_config:
   num: 256
   max_epochs: 40
   patience_delta: 0.0001
-  train_dir: "output/snr10_bomb_noise_aware"
+  train_dir: "output/snr10_bomb/noise_aware"
   learn_independent_params: False
   sparsity_weight: 3.0
 loss_weights: [1, 1, 1]
