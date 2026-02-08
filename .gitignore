@@ -5,3 +5,4 @@ __pycache__/
 .DS_Store
 /real_rirs
 /output-archive
+/shared
