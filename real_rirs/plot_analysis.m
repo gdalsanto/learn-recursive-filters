@@ -1,12 +1,15 @@
 close all; clear all; clc 
 %% Plot RIR waveform with onset marker for all analyzed files
-matDir = fullfile(pwd, 'sdm');
-wavDir = fullfile(pwd, 'sdm');
+matDir = fullfile(pwd, 'sdm_selected');
+wavDir = fullfile(pwd, 'sdm_selected');
 
 matFiles = dir(fullfile(matDir, '*_analysis.mat'));
 if isempty(matFiles)
     error('No analysis files found in %s', matDir);
 end
+
+freq_bands = [125, 250, 500, 1000, 2000, 4000]; 
+
 
 for k = 1:numel(matFiles)
     matPath = fullfile(matDir, matFiles(k).name);
@@ -33,7 +36,7 @@ for k = 1:numel(matFiles)
 
     figure('Name', baseName, 'NumberTitle', 'off');
 
-    subplot(2, 1, 1);
+    subplot(3, 1, 1);
     plot(t, x, 'b-');
     hold on;
     xline(onsetSample / fs, 'r--', 'LineWidth', 1.5);
@@ -44,14 +47,22 @@ for k = 1:numel(matFiles)
     legend({'Waveform', 'Onset'}, 'Location', 'best');
     grid on;
 
-    subplot(2, 1, 2);
+    subplot(3, 1, 2);
     plot(double(data.bands), double(data.rt60), 'b-');
+    hold on 
+    plot(double(data.bands), data.dfn_rt60, 'r-' )
+    xlabel('Frequency (Hz)');
+    ylabel('RT60 (s)');
+    title(sprintf('%s rt60', strrep(baseName, '_', ' ')));
+    legend('reg', 'dfn')
+    grid on;
+
+    subplot(3, 1, 3);
+    plot(double(data.bands), data.dfn_amp, 'r-' )
     xlabel('Frequency (Hz)');
     ylabel('RT60 (s)');
     title(sprintf('%s rt60', strrep(baseName, '_', ' ')));
     grid on;
-    close all
-
 
     % extract noise floor 
     start_noise = int64(data.noise_floor_samps) + data.onset;
@@ -59,4 +70,6 @@ for k = 1:numel(matFiles)
     snr = mean(abs(x).^2) / mean(abs(noise_floor).^2);
     disp(baseName)
     disp("snr: " + num2str(snr));
+
+
 end
