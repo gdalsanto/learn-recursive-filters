@@ -8,13 +8,26 @@ set(groot,'defaultAxesFontSize',20)
 addpath("+yaml")
 addpath("./Colormaps/")
 
+% Define the two colors as RGB triplets (values between 0 and 1)
+c2 = [254,97,0]./255;   % Color 1 (example)
+c1 = [0.5 0.4 1];   % Color 2 (example)
+
+nColors = 5; % Total number of colors in gradient
+
+% Generate gradient
+gradientColors = [linspace(c1(1), c2(1), nColors)', ...
+                  linspace(c1(2), c2(2), nColors)', ...
+                  linspace(c1(3), c2(3), nColors)'];
+gradientColors(2, :) = gradientColors(end-1, :);
+gradientColors(3:end, :) = 0.35*ones(3, 3);
+
 %% LOAD DATA I
 
-output_folder = "output/";
+output_folder = "output/JAES-results";
 
 test_folders = ["no_perturb_", "no_perturb_snr10_noiseinj_", "no_perturb_snr10_"]; % fig 8
-test_folders = ["no_perturb_noearly_", "no_perturb_noearly_snr10_noiseinj_", "no_perturb_noearly_snr10_"]; % fig 9
-test_folders = ["no_perturb_mss_"]; % fig 10
+% test_folders = ["no_perturb_noearly_", "no_perturb_noearly_snr10_noiseinj_", "no_perturb_noearly_snr10_"]; % fig 9
+test_folders = ["no_perturb_mss_", "no_perturb_noisy_mss_"]; % fig 10
 
 test_labels = ["$\mathcal{L}(h,\hat{h})$", "$\mathcal{L}(h + w_1,\hat{h} +w_2 )$", "$\mathcal{L}(h+w_1,\hat{h})$"]; 
 
@@ -99,13 +112,13 @@ for i_test = length(test_folders):-1:1
         ax = axHandles(id);
         hold(ax,'on')
         h = plot(ax, steps, squeeze(losses(i_test, 1, :, i)), lineStyle(i_test), ...
-                 'Color', blueShades(i_test, :), 'LineWidth', lineWidth(i_test));
+                 'Color', gradientColors(i_test, :), 'LineWidth', lineWidth(i_test));
         [min_val, min_idx] = min(squeeze(losses(i_test, 1, :, i)));
         if i_test == 2
             error = abs(steps(min_idx) - target)/target * 100;
             errors = [errors, error];
         end
-        plot(ax, steps(min_idx), min_val, 'x', 'MarkerSize', 10, 'LineWidth', lineWidth(i_test), 'Color', blueShades(i_test, :))
+        plot(ax, steps(min_idx), min_val, 'x', 'MarkerSize', 10, 'LineWidth', lineWidth(i_test), 'Color', gradientColors(i_test, :))
         % store handle only when this is the first subplot (use id == 1)
         if id == 1
             hTests(i_test) = h;
