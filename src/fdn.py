@@ -119,7 +119,7 @@ class FDN:
             requires_grad=self.requires_grad,
         )
         output_gain.assign_value(
-            torch.tensor(input_vector, device=self.config_dict.device).unsqueeze(0)
+            torch.tensor(input_vector, device=self.config_dict.device).unsqueeze(0)/self.N
         )
 
         # output equlizer 
