@@ -27,13 +27,13 @@ param_config:
       indx: 1
 loss_config:
   n_runs: 50
-  output_dir: "output/perturb_c_rt_2" 
+  output_dir: "output/perturb_c_fc_2" 
   perturb_param: "output_gain"
-indx_profile: 0
+indx_profile: 1
 device: 'cuda'
 add_noise_to_target: True
 snr_db: 10
 losses:
-  - ['EDC', {'func_name': 'edc_loss', 'args': {'name': 'EDC_lin', 'is_broadband': False, 'scale': 'linear','n_fractions': 3, 'energy_norm': False, 'clip': False, 't_mix': 0.0, 'add_noise': True, 'noise_file': './output/perturb_c_rt_2/noise_term.mat'}}]
-  - ['EDC', {'func_name': 'edc_loss', 'args': {'name': 'EDC_log', 'is_broadband': False, 'scale': 'log','n_fractions': 3, 'energy_norm': False, 'clip': False, 't_mix': 0.0, 'add_noise': True, 'noise_file': './output/perturb_c_rt_2/noise_term.mat'}}]
-  - ['MSS', {'func_name': 'mss_loss', 'args': {'name': 'MSS', 'energy_norm': False,  'alpha_lin': 1, 'alpha_log': 1, 't_mix': 0.0, 'add_noise': True, 'noise_file': './output/perturb_c_rt_2/noise_term.mat'}}]
+  - ['EDC', {'func_name': 'edc_loss', 'args': {'name': 'EDC_lin', 'is_broadband': False, 'scale': 'linear','n_fractions': 3, 'energy_norm': False, 'clip': False, 't_mix': 0.0, 'add_noise': True, 'noise_file': './output/perturb_c_fc_2/noise_term.mat'}}]
+  - ['EDC', {'func_name': 'edc_loss', 'args': {'name': 'EDC_log', 'is_broadband': False, 'scale': 'log','n_fractions': 3, 'energy_norm': False, 'clip': False, 't_mix': 0.0, 'add_noise': True, 'noise_file': './output/perturb_c_fc_2/noise_term.mat'}}]
+  - ['MSS', {'func_name': 'mss_loss', 'args': {'name': 'MSS', 'energy_norm': False,  'alpha_lin': 1, 'alpha_log': 1, 't_mix': 0.0, 'add_noise': True, 'noise_file': './output/perturb_c_fc_2/noise_term.mat'}}]
