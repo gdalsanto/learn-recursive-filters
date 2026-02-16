@@ -24,3 +24,4 @@ pip install -e .
 - `src/utils.py`: Utility functions to parse configs, instantiate loss functions, and measure echo density.
 - `src/test_loss_profile.py`: Script to sweep/plot loss profiles or surfaces for FDN parameters and export reference IRs and minima.
 - `src/test_optimization.py`: Script to optimize FDN parameters against targets with FLAMO’s trainer, saving checkpoints and results.
+- `src/test_optimization_real_data.py`: Similar optimization as above but with real data.
