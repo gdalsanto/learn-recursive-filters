@@ -107,7 +107,7 @@ for i_window = 1:length(nffts)
         colorbar('off')
     end
 end
-exportgraphics(gcf, 'mss_abs_2.eps', 'ContentType', 'vector', 'Resolution', 300);
+% exportgraphics(gcf, 'mss_abs_2.eps', 'ContentType', 'vector', 'Resolution', 300);
 %% Plot the STFT logarithmic
 figure('Name', 'stft_log', 'Position', [60 10 1300*0.9 700*0.9])
 
@@ -188,7 +188,7 @@ for i_window = 1:length(nffts)
     end
 end
 
-exportgraphics(gcf, 'mss_log_2.eps', 'ContentType', 'vector', 'Resolution', 100);
+% exportgraphics(gcf, 'mss_log_2.eps', 'ContentType', 'vector', 'Resolution', 100);
 %% plot 2 
 figure('Name', 'stft', 'Position', [60 10 1300*0.9 700*0.9])
 
@@ -265,7 +265,7 @@ for ax = [ax1, ax2, ax3, ax4]
     set(ax, 'Box', 'on', 'Layer', 'top')
 end
 
-exportgraphics(gcf, 'spectrogram_analysis_2.eps', 'ContentType', 'vector', 'Resolution', 100);
+% exportgraphics(gcf, 'spectrogram_analysis_2.eps', 'ContentType', 'vector', 'Resolution', 100);
 %% Plot the EDC
 
 target_edc_norm = target_edc - target_edc(1, :);
@@ -300,7 +300,7 @@ for i_indx = 1 : length(indx)
         yticklabels([]);
     end
     % Add band frequency as title
-    title(ax, sprintf('%.1f Hz', f_bands(i_band)), 'Interpreter', 'latex');
+    title(ax, sprintf('%.0f Hz', f_bands(i_band)), 'Interpreter', 'latex');
     % Make tick labels smaller while keeping axis labels/titles readable
     ax.FontSize = 26;                 % tick label font size
     ax.XLabel.FontSize = 30;          % axis label font sizes
@@ -316,5 +316,5 @@ if all(isgraphics(legendHandles))
     lg.Layout.Tile = 'north';
 end
 
-
+exportgraphics(gcf, 'spectrogram_analysis_2.eps', 'ContentType', 'vector', 'Resolution', 100);
 
