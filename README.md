@@ -1,6 +1,6 @@
 # Learning Recursive Attenuation Filters Under Noisy Conditions 
 
-[JAES-DAFx paper (arXiv)](https://arxiv.org/abs/2512.16318) | [Audio examples](http://research.spa.aalto.fi/publications/papers/eurasip-colorless-fdn/)
+[JAES-DAFx paper (arXiv)](https://arxiv.org/abs/2512.16318) | [Audio examples](http://research.spa.aalto.fi/publications/papers/jaes-learn-noisy-rirs/)
 
 ### 🛠️ Getting started
 When cloning this repository make sure to clone all the submodules by running 
