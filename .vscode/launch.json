@@ -42,6 +42,30 @@
             ]
         },
         {
+            "name": "Figure 11",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "src/test_loss_surface.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--config_file",
+                "config/loss_profile_fig11_cpu.yml"
+            ]
+        },
+        {
+            "name": "Perturbation",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "src/test_loss_profile.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--config_file",
+                "config/loss_profile_perturbation.yml"
+            ]
+        },
+        {
             "name": "Optimize",
             "type": "debugpy",
             "request": "launch",
