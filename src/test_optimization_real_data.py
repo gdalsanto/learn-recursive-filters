@@ -104,11 +104,17 @@ def main(config_dict, args):
     config_dict.num_targets = rirs.shape[0]
 
     # load noise file
-    noise_signal, fs_noise = sf.read(config["noise_file"])
-    if fs_noise != config["fdn"].sample_rate:
-        raise ValueError(
-            f"Sampling rate of noise file ({fs_noise} Hz) does not match FDN sampling rate ({config['fdn'].sample_rate} Hz)."
-        )
+    if config["noise_file"]:
+        noise_signal, fs_noise = sf.read(config["noise_file"])
+        if fs_noise != config["fdn"].sample_rate:
+            raise ValueError(
+                f"Sampling rate of noise file ({fs_noise} Hz) does not match FDN sampling rate ({config['fdn'].sample_rate} Hz)."
+            )
+    else: 
+        noise_signal = get_noise(
+                noise_level_db=-10, # arbitrary becuase it will be adjusted later
+                ir_len=rirs.shape[1],
+            )[0, :, 0]
 
     # ========== Prepare noisy target ==========
     # --- Trainer config_dict ---
