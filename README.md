@@ -25,3 +25,6 @@ pip install -e .
 - `src/test_loss_profile.py`: Script to sweep/plot loss profiles or surfaces for FDN parameters and export reference IRs and minima.
 - `src/test_optimization.py`: Script to optimize FDN parameters against targets with FLAMO’s trainer, saving checkpoints and results.
 - `src/test_optimization_real_data.py`: Similar optimization as above but with real data.
+
+before computing the results, move the output folders to `shared` and run 
+`zsh reorganize_shared_for_analyze_edr.zsh --apply --mode symlink`
