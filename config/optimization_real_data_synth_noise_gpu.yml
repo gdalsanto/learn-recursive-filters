@@ -1,13 +1,13 @@
 fdn_config:
   rt60: [0.5]
-  nfft: 192000
+  nfft: 96000
   attenuation_type: 'one_pole'
   N: 6
   alias_decay_db: 0
   sample_rate: 48000
 target_fdn_config:
   rt60: [0.5]
-  nfft: 192000
+  nfft: 96000
   attenuation_type: 'one_pole'
   N: 32
   alias_decay_db: 0

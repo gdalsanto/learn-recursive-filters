@@ -77,6 +77,8 @@ SNR_LEVELS=(
   snr20_bomb
   snr20_pb132
   snr20_se203
+  snr10_synth
+  snr20_synth
 )
 
 LOSS_TYPES=(

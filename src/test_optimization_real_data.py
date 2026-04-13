@@ -150,7 +150,7 @@ def main(config_dict, args):
 
         # extract the noise from the target rir
         start_noise = int(cur_rir_info["noise_floor_samps"].item())
-        noise_segment = cur_rir[:, start_noise:, :].clone()
+        noise_segment = rirs[i_target, start_noise:min(rirs[i_target].shape[0], start_noise + int(0.2*config["fdn"].nfft)), :].clone().unsqueeze(0) 
         noise_segment_ext = extend_noise(noise_segment, nfft=config["fdn"].nfft) 
         # match the energy to the original noise segment
         energy_noise_segment = torch.mean(torch.pow(torch.abs(noise_segment), 2))
