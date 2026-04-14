@@ -9,3 +9,4 @@ __pycache__/
 *.asv
 *.eps
 *.mat
+/discard
