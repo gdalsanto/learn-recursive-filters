@@ -14,8 +14,8 @@ cm = [0.5 0.4 1; 1 1 1; 0.9961 0.3804 0 ]; % [0 0 1; 1 1 1; 1 0 0];
 cmi = interp1([-5; 0; 5], cm, (-5:0.1:5)); 
 %% LOAD DATA 
 
-output_folder = "../output";
-test_folder = "snr10_pb132"; 
+output_folder = "../shared";
+test_folder = "snr20_synth"; 
 types = ["noise_agnostic", "noise_aware"];
 loss_id = [1, 2, 3];
 yml_file = "optimization_real_data_gpu.yml";
@@ -25,7 +25,7 @@ dirinfo = dir(fullfilepath);
 dirinfo = dirinfo([dirinfo.isdir]);
 dirnames = {dirinfo.name};
 run_dir = dirnames(~ismember(dirnames, {'.', '..'}));
-rirs_id  = [3]; % [1:4]; % 
+rirs_id  = [6]; % [1:4]; % 
 n_rirs = length(rirs_id);
 
 fullfilepath = fullfile(output_folder, test_folder, types(1), run_dir{1});
@@ -189,7 +189,7 @@ for i_rir=1:n_rirs
         
         % Tile 1: Noise Agnostic difference
         ax1 = nexttile;
-        imagesc(t_fdn, f_fdn, (edr_gt(1:size(edr_agn, 1),:)-edr_agn).');
+        imagesc(t_fdn, f_fdn, (edr_gt-edr_agn(1:size(edr_gt, 1), :)).');
         set(gca, 'YDir', 'normal');
         colormap(ax1, cmi); 
 %         cb1 = colorbar;
@@ -200,14 +200,14 @@ for i_rir=1:n_rirs
         xlabel('Time (s)', 'FontSize', 30, 'Interpreter','latex')
         yticks(ax1, [1000, 5000, 10000, 15000, 20000]);
         yticklabels(ax1, {'1', '5', '10', '15', '20'});
-        title(num2str(mean(abs(edr_gt(1:size(edr_agn, 1),:)-edr_agn), 'all'), 3), 'FontSize', 30, 'Interpreter','latex')
+        title(num2str(mean(abs(edr_gt-edr_agn(1:size(edr_gt, 1), :)), 'all'), 3), 'FontSize', 30, 'Interpreter','latex')
         set(gca, 'LineWidth', 1.2, 'Box', 'on')
         
         xlim([0, 1.5])
         
         % Tile 2: Noise Aware difference
         ax2 = nexttile;
-        imagesc(t_fdn, f_fdn, (edr_gt(1:size(edr_awa, 1),:)-edr_awa).');
+        imagesc(t_fdn, f_fdn, (edr_gt-edr_awa(1:size(edr_gt, 1), :)).');
         set(gca, 'YDir', 'normal');
         colormap(ax2, cmi); 
         cb2 = colorbar; 
@@ -218,13 +218,13 @@ for i_rir=1:n_rirs
         xlabel('Time (s)', 'FontSize', 30, 'Interpreter','latex')
         yticks(ax2, [1000, 5000, 10000, 15000, 20000]);
         yticklabels(ax2, {'1', '5', '10', '15', '20'});
-        title(num2str(mean(abs(edr_gt(1:size(edr_awa, 1),:)-edr_awa), 'all'), 3), 'FontSize', 30, 'Interpreter','latex')
+        title(num2str(mean(abs(edr_gt-edr_awa(1:size(edr_gt, 1), :)), 'all'), 3), 'FontSize', 30, 'Interpreter','latex')
         set(gca, 'LineWidth', 1.2, 'Box', 'on')
         
         xlim([0, 1.5])
         
         % Export each loss function figure
-        exportgraphics(gcf, sprintf('edr_diff_%s.eps', loss_name), 'ContentType', 'vector', 'Resolution', 100);
+        % exportgraphics(gcf, sprintf('edr_diff_%s.eps', loss_name), 'ContentType', 'vector', 'Resolution', 100);
     end
     
 end
