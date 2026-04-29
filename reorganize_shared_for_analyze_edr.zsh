@@ -71,14 +71,15 @@ if [[ "$MODE" != "copy" && "$MODE" != "symlink" && "$MODE" != "move" ]]; then
 fi
 
 SNR_LEVELS=(
-  snr10_bomb
-  snr10_pb132
-  snr10_se203
-  snr20_bomb
-  snr20_pb132
-  snr20_se203
-  snr10_synth
-  snr20_synth
+  # snr10_bomb
+  # snr10_pb132
+  # snr10_se203
+  # snr20_bomb
+  # snr20_pb132
+  # snr20_se203
+  # snr10_synth
+  # snr20_synth
+  snr10_2_bomb
 )
 
 LOSS_TYPES=(
