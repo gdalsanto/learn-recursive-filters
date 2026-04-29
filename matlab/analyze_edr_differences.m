@@ -7,10 +7,12 @@ set(groot,'defaultAxesFontSize',26)
 
 %% DIRs
 
-output_folder = "../shared/output";
+output_folder = "../shared";
 ref_rir_folder = "../real_rirs/sdm_selected";
 snr_levels = ["snr10_bomb", "snr10_pb132", "snr10_se203", ...
-              "snr20_bomb", "snr20_pb132", "snr20_se203"];
+             "snr20_bomb", "snr20_pb132", "snr20_se203"];
+snr_levels = ["snr10_synth", "snr20_synth"];
+snr_levels = ["snr10_2_bomb"] 
 loss_types = ["EDC_lin", "EDC_log", "MSS"];
 noise_types = ["noise_agnostic", "noise_aware"];
 
@@ -19,7 +21,7 @@ results = struct();
 %% PROCESS ALL 
  
 rirs_indx = [1 3 4 5 8 9 10 11];
-
+% rirs_indx = 1:7;
 for i_snr = 1:length(snr_levels)
     snr_folder = snr_levels(i_snr);
     snr_path = fullfile(output_folder, snr_folder);
@@ -165,10 +167,14 @@ for i_snr_val = 1:length(unique_snr_vals)
                 awa_diffs = [awa_diffs; res.mean_abs_diff_awa];
             end
         end        
-        agn_mean = median(agn_diffs);
-        awa_mean = median(awa_diffs);
+        agn_mean = mean(agn_diffs);
+        awa_mean = mean(awa_diffs);
         agn_std = std(agn_diffs);
         awa_std = std(awa_diffs);
+%         agn_mean = median(agn_diffs);
+%         awa_mean = median(awa_diffs);
+%         agn_std = iqr(agn_diffs, 'all');
+%         awa_std = iqr(awa_diffs, 'all');
         fprintf('%-30s | %8.3f ± %7.3f | %8.3f ± %7.3f\n', ...
                 loss_type, agn_mean, agn_std, awa_mean, awa_std);
     end
