@@ -207,12 +207,14 @@ p1 = pcolor(ax1, time_axis, freq_axis, 20*log10(abs(target_stft_cur)));
 p1.EdgeColor = 'none';
 ax1.YDir = 'normal';
 ax1.YScale = 'linear';           % or 'log' if you want log-scaled y-axis
-caxis(ax1, [-100 10]);
+caxis(ax1, [-100 20]);
 title(ax1, '(a) $h(t) + w(t)$', 'Interpreter','latex')
 yticks(ax1, [1000, 5000, 10000, 15000, 20000]);
 yticklabels(ax1, {'1', '5', '10', '15', '20'});
 ylabel(ax1, 'Frequency (kHz)')
 cb1 = colorbar(ax1);             % per-tile colorbar (optional)
+cb1.TickLabelInterpreter = "latex";
+cb1.Ticks = [-100, -60, -20, 20];
 ylabel(cb1, 'Magnitude (dB)', 'Interpreter', 'Latex');
 colormap(ax1, mycolormap)
 
@@ -222,11 +224,13 @@ p2 = pcolor(ax2, time_axis, freq_axis, 20*log10(abs(fdn_stft_cur)));
 p2.EdgeColor = 'none';
 ax2.YDir = 'normal';
 ax2.YScale = 'linear';   
-caxis(ax2, [-100 10]);
+caxis(ax2, [-100 20]);
 yticks(ax2, [1000, 5000, 10000, 15000, 20000]);
 yticklabels(ax2, {'1', '5', '10', '15', '20'});
 title(ax2, '(b) $\hat{h}(t; \theta^*_{\Gamma})$', 'Interpreter','latex')
 cb2 = colorbar(ax2); % right side of top row
+cb2.TickLabelInterpreter = "latex";
+cb2.Ticks = [-100, -60, -20, 20];
 ylabel(cb2, 'Magnitude (dB)', 'Interpreter', 'Latex');
 colormap(ax2, mycolormap)
 
@@ -242,6 +246,7 @@ ylabel(ax3, 'Frequency (kHz)')
 title(ax3, '(c) Logarithmic', 'Interpreter','latex')
 xlabel(ax3, 'Time (s)')
 cb3 = colorbar(ax3);
+cb3.TickLabelInterpreter = "latex";
 ylabel(cb3, '$\mathcal{J}_1$', 'Interpreter','latex');
 colormap(ax3, mycolormapPosDiff_III)
 
@@ -256,6 +261,7 @@ yticklabels(ax4, {'1', '5', '10', '15', '20'});
 title(ax4, '(d) Linear', 'Interpreter','latex')
 xlabel(ax4, 'Time (s)')
 cb4 = colorbar(ax4);
+cb4.TickLabelInterpreter = "latex";
 ylabel(cb4, '$\mathcal{J}_2$', 'Interpreter','latex');
 colormap(ax4, mycolormapPosDiff_IV)
 
